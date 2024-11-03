@@ -18,38 +18,58 @@
 % \XeTeX\ primitives in Lua\TeX\
 % (\url{https://gist.github.com/hmenke/6e8ff7c90a5e5df3c4895f60059a2ef7}):
 
-
-\ifx\undefined\XeTeXglyph
-  \def\XeTeXglyph{%
-    \directlua{
+\def\XeTeXglyph{%
+   \directlua{
       local index = token.scan_int()
       local tfmdata = font.getfont(font.current())
-      if tfmdata.format \string ~= "opentype"
-         and tfmdata.format \string ~= "truetype" then
-          tex.error([[Cannot use \string\XeTeXglyph]] .. [[ with ]] ..
-                    tfmdata.name .. tfmdata.format \string ..
-                    [[; not opentype or truetype]])
+      if tfmdata.format ~= "opentype" and tfmdata.format ~= "truetype" then
+         tex.error("Cannot use \\XeTeXglyph with " .. tfmdata.name .. " format " .. tfmdata.format)
       end
+      local found = false
       for slot, char in pairs(tfmdata.characters) do
-          if char.index == index then
-              tex.print(utf.char(char.unicode))
-              return
-          end
+         if char.index == index then
+            tex.print(utf.char(char.unicode))
+            found = true
+            break
+         end
       end
-    }}%
-  %
-\newfontfamily{\NSM}[Renderer=Base]{NotoSansManichaean-Regular.ttf}
-\newcommand{\VSone}{\hbox to 1em{\NSM\XeTeXglyph58\hfil}} % FE00
-\else
-\newcommand{\VSone}{{\fontspec{NotoSansManichaean-Regular.ttf}\XeTeXglyph58}}
- \fi
+      if not found then
+         texio.write_nl("Glyph " .. index .. " not found in " .. tfmdata.name)
+      end
+   }
+}
+
+% \ifx\undefined\XeTeXglyph
+%   \def\XeTeXglyph{%
+%     \directlua{
+%       local index = token.scan_int()
+%       local tfmdata = font.getfont(font.current())
+%       if tfmdata.format \string ~= "opentype"
+%          and tfmdata.format \string ~= "truetype" then
+%           tex.error([[Cannot use \string\XeTeXglyph]] .. [[ with ]] ..
+%                     tfmdata.name .. tfmdata.format \string ..
+%                     [[; not opentype or truetype]])
+%       end
+%       for slot, char in pairs(tfmdata.characters) do
+%           if char.index == index then
+%               tex.print(utf.char(char.unicode))
+%               return
+%           end
+%       end
+%     }}%
+%   %
+% \newfontfamily{\NSM}[Renderer=Base]{NotoSansManichaean-Regular.ttf}
+% \newcommand{\VSone}{\hbox to 1em{\NSM\XeTeXglyph58\hfil}} % FE00
+% \else
+% \newcommand{\VSone}{{\fontspec{NotoSansManichaean-Regular.ttf}\XeTeXglyph58}}
+%  \fi
 
 
 \begin{document}
 
 \Huge
 
-\VSone
+%\VSone
 
 ID 16990   {\unifont\XeTeXglyph16990}
 
