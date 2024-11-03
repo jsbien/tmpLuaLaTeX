@@ -1,0 +1,122 @@
+\documentclass[nonumber,runningminimal,final]{ltugboat}
+\usepackage{microtype,fontspec,graphicx}
+\usepackage[hidelinks,pdfa]{hyperref}
+\def\url{\tbsurl}
+\def\code{\texttt}
+\newcommand{\uname}[1]{{\textsc{\MakeLowercase{#1}}}}
+\newcommand{\ucode}[1]{{\acro{U+#1}}}
+%\hfuzz=1.8pt
+
+\newfontfamily{\Junicode}[Renderer=HarfBuzz]{Junicode}
+\newcommand{\sgl}[1]{{\Junicode\addfontfeature{StylisticSet=10}#1}}
+\newcommand{\Fzerosone}{\sgl{󰀁}}
+
+\ifx\undefined\XeTeXglyph
+  \def\XeTeXglyph{%
+    \directlua{
+      local index = token.scan_int()
+      local tfmdata = font.getfont(font.current())
+      if tfmdata.format \string ~= "opentype"
+         and tfmdata.format \string ~= "truetype" then
+          tex.error([[Cannot use \string\XeTeXglyph]] .. [[ with ]] ..
+                    tfmdata.name .. tfmdata.format \string ..
+                    [[; not opentype or truetype]])
+      end
+      for slot, char in pairs(tfmdata.characters) do
+          if char.index == index then
+              tex.print(utf.char(char.unicode))
+              return
+          end
+      end
+    }}%
+  %
+\newfontfamily{\NSM}[Renderer=Base]{NotoSansManichaean-Regular.ttf}
+\newcommand{\VSone}{\hbox to 1em{\NSM\XeTeXglyph58\hfil}} % FE00
+\else
+\newcommand{\VSone}{{\fontspec{NotoSansManichaean-Regular.ttf}\XeTeXglyph58}}
+\fi
+
+%\tubtitlerulefullwidthtrue
+\title{Production notes}
+\author{Karl Berry}
+\address{\texttt{tug.org/TUGboat}}
+\EDITORnoaddress
+\netaddress{github.com/TeXUsersGroup}
+%\EDITORnonetaddress %{tugboat (at) tug dot org}
+
+\def\firstpageincr{-1} % splice
+\begin{document}
+
+\maketitle
+\footnotesize
+
+Almost all of the characters in Janusz's article could be typeset with
+no particular trouble. But two needed special attention: the \acro{MUFI}
+character \Fzerosone\ (\ucode{F0001} \uname{LATIN SMALL LETTER A WITH
+STROKE THROUGH TERMINAL}) and the visible glyph \VSone\ (\ucode{FE00}
+\uname{VARIATION SELECTOR\mbox{-}1}).
+
+For the former: in the Junicode font, \ucode{F0001} is active only with
+the \texttt{ss10} feature enabled. \XeLaTeX\ is happy to typeset this:
+\begin{verbatim}[\footnotesize]
+\newfontfamily{\Junicode}
+  {JunicodeTwoBeta-Regular.ttf} % for XeTeX
+\newcommand{\sgl}[1]
+  {{\Junicode\addfontfeature{StylisticSet=10}#1}}
+\newcommand{\Fzerosone}{\sgl{...}}
+\end{verbatim}
+
+However, I wanted to use Lua\LaTeX\ to typeset the article, because its
+support for microtype's font expansion feature avoided several overfull
+lines. It turns out
+(\url{https://github.com/latex3/luaotfload/issues/244}) that setting the
+\texttt{HarfBuzz} rendering mode is all that's needed. (This is not the
+default in \texttt{lualatex}, even though it uses the \texttt{luahbtex}
+engine.)
+\begin{verbatim}[\footnotesize]
+% For LuaTeX:
+\newfontfamily{\Junicode}
+  [Renderer=HarfBuzz]{JunicodeTwoBeta-Regular.ttf}
+\end{verbatim}
+
+For the latter character: ordinarily, Unicode prescribes that variation
+selectors are invisible, but a few fonts also provide a visible glyph;
+the one here (found by Janusz) is from
+\texttt{NotoSansManichaean-Regular.ttf}, following what is printed in
+the Unicode font charts.
+
+\XeLaTeX\ could handle this with its \cs{XeTeXglyph} primitive, which
+can be used to typeset any glyph from a font, whether mapped or not; in
+this case, \cs{XeTeXglyph 58}. (The \code{ttx} program can be used to
+discern such internal information in any OpenType or TrueType font.)
+
+For Lua\LaTeX, however, it was necessary both to use the \texttt{Base}
+rendering mode, and a bit of Lua code which written by Henri Menke
+(thank you Henri, and thank you search engines), which emulates many
+\XeTeX\ primitives in Lua\TeX\
+(\url{https://gist.github.com/hmenke/6e8ff7c90a5e5df3c4895f60059a2ef7}):
+
+\begin{verbatim}[\footnotesize]
+\ifx\undefined\XeTeXglyph % LuaTeX case:
+  \def\XeTeXglyph{%
+    \directlua{...}}%
+\fi
+\newfontfamily{\NSM}
+  [Renderer=Base]{NotoSansManichaean-Regular.ttf}
+\newcommand{\VSone}{{\NSM\XeTeXglyph58}}
+\end{verbatim}
+
+Happy Unicode typesetting.
+
+\makesignature
+
+\end{document}
+
+%%% Local Variables: 
+%%% coding: utf-8-unix
+%%% TeX-engine: luatex
+%%% mode: latex
+%%% TeX-command-extra-options: "-shell-escape"
+%%% TeX-master: t
+%%% TeX-PDF-mode: t
+%%% End: 
